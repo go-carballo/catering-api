@@ -1,0 +1,1 @@
+CREATE INDEX "ix_service_days_status" ON "service_days" USING btree ("contract_id","status");
