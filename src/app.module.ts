@@ -6,6 +6,7 @@ import { CateringModule } from './modules/catering/catering.module';
 import { ClientModule } from './modules/client/client.module';
 import { ContractModule } from './modules/contract/contract.module';
 import { ServiceDayModule } from './modules/service-day/service-day.module';
+import { SeedModule } from './modules/seed/seed.module';
 import { DatabaseModule } from './shared/infrastructure/database/database.module';
 import { OutboxModule } from './shared/outbox';
 
@@ -22,6 +23,7 @@ import { OutboxModule } from './shared/outbox';
     ClientModule,
     ContractModule,
     ServiceDayModule,
+    SeedModule,
   ],
 })
 export class AppModule {}
