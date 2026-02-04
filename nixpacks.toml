@@ -1,5 +1,0 @@
-[phases.setup]
-nixPkgs = ["nodejs_20", "pnpm"]
-
-[start]
-cmd = "npm run db:migrate && node dist/src/main.js"
