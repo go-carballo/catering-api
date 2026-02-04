@@ -56,15 +56,12 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  const port = process.env.PORT ?? 3000;
-  console.log(`📍 Attempting to listen on port: ${port}`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
+  // Railway always sets PORT=8080, but we need to listen on 3000 for the public domain
+  const port = 3000;
   console.log(
-    `🔧 All env vars:`,
-    Object.keys(process.env).filter(
-      (k) => !k.includes('SECRET') && !k.includes('PASSWORD'),
-    ),
+    `📍 Forcing port: ${port} (Railway PORT was: ${process.env.PORT})`,
   );
+  console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
 
   await app.listen(port, '0.0.0.0');
 
