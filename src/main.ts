@@ -57,6 +57,15 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document);
 
   const port = process.env.PORT ?? 3000;
+  console.log(`📍 Attempting to listen on port: ${port}`);
+  console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
+  console.log(
+    `🔧 All env vars:`,
+    Object.keys(process.env).filter(
+      (k) => !k.includes('SECRET') && !k.includes('PASSWORD'),
+    ),
+  );
+
   await app.listen(port, '0.0.0.0');
 
   console.log(`🚀 Catering API running on http://localhost:${port}/api`);
