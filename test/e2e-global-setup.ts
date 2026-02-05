@@ -44,6 +44,7 @@ async function initializeDatabase(db: ReturnType<typeof drizzle>) {
   // Drop all tables
   await db.execute(sql`DROP TABLE IF EXISTS outbox_events CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS service_days CASCADE`);
+  await db.execute(sql`DROP TABLE IF EXISTS contracts_service_days CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS contracts CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS client_office_days CASCADE`);
   await db.execute(sql`DROP TABLE IF EXISTS session_activities CASCADE`);
@@ -244,17 +245,21 @@ async function seedTestData(db: ReturnType<typeof drizzle>) {
 
 /**
  * Global setup for E2E tests
+ * Initializes test database with schema and seed data
  */
 export async function setup() {
-  // Set test database URL for NestJS AppModule
-  process.env.DATABASE_URL = TEST_DATABASE_URL;
-
   console.log('🔧 Setting up E2E test database...');
-  const db = await getTestDb();
-  await initializeDatabase(db);
-  await seedTestData(db);
-  await closeTestDb();
-  console.log('✅ E2E test database ready with seed data');
+  try {
+    const db = await getTestDb();
+    await initializeDatabase(db);
+    await seedTestData(db);
+    await closeTestDb();
+    console.log('✅ E2E test database ready with seed data');
+  } catch (error) {
+    console.error('❌ E2E test database setup failed:', error);
+    await closeTestDb();
+    throw error;
+  }
 }
 
 /**

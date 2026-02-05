@@ -1,5 +1,10 @@
 import swc from 'unplugin-swc';
 import { defineConfig } from 'vitest/config';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+// Load test environment variables before any imports
+dotenv.config({ path: path.join(__dirname, '.env.test') });
 
 export default defineConfig({
   test: {

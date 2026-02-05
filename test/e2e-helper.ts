@@ -3,6 +3,12 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { AppModule } from '../src/app.module';
 import request from 'supertest';
 import { App } from 'supertest/types';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+
+// Load .env.test BEFORE anything else
+dotenv.config({ path: path.join(__dirname, '../.env.test') });
 
 /**
  * E2E Test Helper
@@ -18,7 +24,36 @@ export class E2ETestHelper {
     }).compile();
 
     this.app = this.moduleFixture.createNestApplication();
-    this.app.useGlobalPipes(new ValidationPipe());
+
+    // Replicate main.ts configuration
+    this.app.setGlobalPrefix('api');
+
+    this.app.useGlobalPipes(
+      new ValidationPipe({
+        whitelist: true,
+        forbidNonWhitelisted: true,
+        transform: true,
+      }),
+    );
+
+    // Setup Swagger
+    const config = new DocumentBuilder()
+      .setTitle('Catering API')
+      .setDescription(
+        'API for managing catering services, contracts, and service days',
+      )
+      .setVersion('1.0')
+      .addBearerAuth()
+      .addTag('auth', 'Authentication operations')
+      .addTag('caterings', 'Catering company operations')
+      .addTag('clients', 'Client company operations')
+      .addTag('contracts', 'Contract management')
+      .addTag('service-days', 'Service day tracking')
+      .build();
+
+    const document = SwaggerModule.createDocument(this.app, config);
+    SwaggerModule.setup('docs', this.app, document);
+
     await this.app.init();
   }
 

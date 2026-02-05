@@ -1,39 +1,32 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import request from 'supertest';
-import { App } from 'supertest/types';
-import { AppModule } from './../src/app.module';
+import { E2ETestHelper } from './e2e-helper'; // Import to ensure .env.test is loaded
 
 describe('App Bootstrap (e2e)', () => {
-  let app: INestApplication<App>;
+  let helper: E2ETestHelper;
 
   beforeEach(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    await app.init();
+    helper = new E2ETestHelper();
+    await helper.setup();
   });
 
   afterEach(async () => {
-    await app.close();
+    await helper.teardown();
   });
 
   it('should initialize NestJS application', () => {
-    expect(app).toBeDefined();
+    expect(helper.getApp()).toBeDefined();
   });
 
   it('should return 404 for root path (no default endpoint)', async () => {
-    return request(app.getHttpServer()).get('/').expect(404);
+    return helper.request().get('/').expect(404);
   });
 
   it('should have Swagger docs available', async () => {
-    return request(app.getHttpServer()).get('/docs').expect(200);
+    return helper.request().get('/docs').expect(200);
   });
 
   it('should have health check endpoint available without auth', async () => {
-    return request(app.getHttpServer())
+    return helper
+      .request()
       .get('/api/health')
       .expect(200)
       .expect((res) => {
