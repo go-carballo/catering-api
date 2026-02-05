@@ -1,4 +1,9 @@
-import { Injectable, Inject, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  Inject,
+  UnauthorizedException,
+  BadRequestException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { eq } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
@@ -6,6 +11,7 @@ import { DRIZZLE } from '../../../shared/infrastructure/database/database.module
 import type { DrizzleClient } from '../../../shared/infrastructure/database/drizzle.client';
 import { companies } from '../../../shared/infrastructure/database/schema';
 import { LoginDto } from './dto/login.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenService } from './refresh-token.service';
 
 export interface JwtPayload {
@@ -158,5 +164,62 @@ export class AuthService {
    */
   async logout(refreshToken: string): Promise<void> {
     await this.refreshTokenService.revokeRefreshToken(refreshToken);
+  }
+
+  /**
+   * Change password for authenticated user
+   */
+  async changePassword(
+    companyId: string,
+    dto: ChangePasswordDto,
+  ): Promise<void> {
+    // Validate passwords match
+    if (dto.newPassword !== dto.passwordConfirmation) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
+    // Validate new password is different from old
+    if (dto.oldPassword === dto.newPassword) {
+      throw new BadRequestException(
+        'New password must be different from current password',
+      );
+    }
+
+    // Get company with password hash
+    const [company] = await this.db
+      .select()
+      .from(companies)
+      .where(eq(companies.id, companyId))
+      .limit(1);
+
+    if (!company) {
+      throw new UnauthorizedException('Company not found');
+    }
+
+    // Verify old password
+    const isOldPasswordValid = await bcrypt.compare(
+      dto.oldPassword,
+      company.passwordHash,
+    );
+
+    if (!isOldPasswordValid) {
+      throw new UnauthorizedException('Current password is incorrect');
+    }
+
+    // Hash new password
+    const newPasswordHash = await this.hashPassword(dto.newPassword);
+
+    // Update password in database
+    await this.db
+      .update(companies)
+      .set({
+        passwordHash: newPasswordHash,
+        updatedAt: new Date(),
+      })
+      .where(eq(companies.id, companyId));
+
+    // Optional: Revoke all existing refresh tokens for security
+    // This forces the user to login again from other devices
+    await this.refreshTokenService.revokeAllTokensForCompany(companyId);
   }
 }

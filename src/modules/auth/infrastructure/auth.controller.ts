@@ -3,6 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from '../application/auth.service';
 import { LoginDto } from '../application/dto/login.dto';
 import { RefreshTokenDto } from '../application/dto/refresh-token.dto';
+import { ChangePasswordDto } from '../application/dto/change-password.dto';
 import { Public } from '../../../shared/decorators/public.decorator';
 import { GetCompany } from '../../../shared/decorators/get-company.decorator';
 import type { CurrentCompany } from '../../../shared/decorators/get-company.decorator';
@@ -60,5 +61,32 @@ export class AuthController {
   ) {
     await this.authService.logout(dto.refreshToken);
     return { message: 'Logged out successfully' };
+  }
+
+  @Post('change-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Change password for authenticated user',
+    description:
+      'Requires providing current password and new password. All other refresh tokens will be revoked for security.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password changed successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid request (passwords do not match or too short)',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Current password is incorrect',
+  })
+  async changePassword(
+    @GetCompany() company: CurrentCompany,
+    @Body() dto: ChangePasswordDto,
+  ) {
+    await this.authService.changePassword(company.id, dto);
+    return { message: 'Password changed successfully' };
   }
 }
