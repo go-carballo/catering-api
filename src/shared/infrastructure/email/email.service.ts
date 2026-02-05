@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
@@ -10,12 +10,13 @@ export interface EmailOptions {
 }
 
 @Injectable()
-export class EmailService {
+export class EmailService implements OnModuleInit {
   private readonly logger = new Logger('EmailService');
-  private transporter: nodemailer.Transporter;
+  private transporter: nodemailer.Transporter | null = null;
+  private isInitialized = false;
 
   constructor(private configService: ConfigService) {
-    // Initialize email transporter
+    // Initialize email transporter synchronously if possible
     // For development, we can use ethereal (test emails)
     // For production, use real SMTP config from env
 
@@ -39,10 +40,19 @@ export class EmailService {
           pass: emailPassword,
         },
       });
-    } else {
+      this.isInitialized = true;
+    }
+  }
+
+  /**
+   * Initialize async components after module initialization
+   */
+  async onModuleInit(): Promise<void> {
+    if (!this.isInitialized) {
       // Development: Ethereal (test service)
       // This creates a fake SMTP server for testing
-      this.initializeTestTransport();
+      await this.initializeTestTransport();
+      this.isInitialized = true;
     }
   }
 
@@ -74,6 +84,13 @@ export class EmailService {
    */
   async sendEmail(options: EmailOptions): Promise<void> {
     try {
+      if (!this.transporter) {
+        this.logger.warn(
+          `Email transporter not initialized. Skipping email send to ${options.to}`,
+        );
+        return;
+      }
+
       const emailFrom = this.configService.get<string>(
         'EMAIL_FROM',
         'noreply@catering-api.com',
