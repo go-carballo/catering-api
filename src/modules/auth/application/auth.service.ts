@@ -6,6 +6,7 @@ import { DRIZZLE } from '../../../shared/infrastructure/database/database.module
 import type { DrizzleClient } from '../../../shared/infrastructure/database/drizzle.client';
 import { companies } from '../../../shared/infrastructure/database/schema';
 import { LoginDto } from './dto/login.dto';
+import { RefreshTokenService } from './refresh-token.service';
 
 export interface JwtPayload {
   sub: string; // company ID
@@ -15,6 +16,8 @@ export interface JwtPayload {
 
 export interface AuthResponse {
   accessToken: string;
+  refreshToken: string;
+  expiresIn: number; // in seconds
   company: {
     id: string;
     name: string;
@@ -25,9 +28,12 @@ export interface AuthResponse {
 
 @Injectable()
 export class AuthService {
+  private readonly ACCESS_TOKEN_EXPIRY_SECONDS = 24 * 60 * 60; // 24 hours
+
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleClient,
     private readonly jwtService: JwtService,
+    private readonly refreshTokenService: RefreshTokenService,
   ) {}
 
   async login(dto: LoginDto): Promise<AuthResponse> {
@@ -61,9 +67,14 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(payload);
+    const refreshToken = await this.refreshTokenService.generateRefreshToken(
+      company.id,
+    );
 
     return {
       accessToken,
+      refreshToken,
+      expiresIn: this.ACCESS_TOKEN_EXPIRY_SECONDS,
       company: {
         id: company.id,
         name: company.name,
@@ -95,5 +106,57 @@ export class AuthService {
 
   async hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, 10);
+  }
+
+  /**
+   * Refresh an access token using a refresh token
+   */
+  async refreshAccessToken(refreshToken: string): Promise<AuthResponse> {
+    // Validate refresh token
+    const companyId =
+      await this.refreshTokenService.validateRefreshToken(refreshToken);
+
+    if (!companyId) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    // Get company info
+    const [company] = await this.db
+      .select()
+      .from(companies)
+      .where(eq(companies.id, companyId))
+      .limit(1);
+
+    if (!company || company.status !== 'ACTIVE') {
+      throw new UnauthorizedException('Company account is no longer active');
+    }
+
+    // Generate new access token
+    const payload: JwtPayload = {
+      sub: company.id,
+      email: company.email,
+      companyType: company.companyType,
+    };
+
+    const accessToken = this.jwtService.sign(payload);
+
+    return {
+      accessToken,
+      refreshToken, // Return the same refresh token (it's still valid)
+      expiresIn: this.ACCESS_TOKEN_EXPIRY_SECONDS,
+      company: {
+        id: company.id,
+        name: company.name,
+        email: company.email,
+        companyType: company.companyType,
+      },
+    };
+  }
+
+  /**
+   * Logout by revoking the refresh token
+   */
+  async logout(refreshToken: string): Promise<void> {
+    await this.refreshTokenService.revokeRefreshToken(refreshToken);
   }
 }

@@ -177,6 +177,29 @@ export const serviceDays = pgTable(
   ],
 );
 
+// ============ REFRESH TOKENS ============
+
+export const refreshTokens = pgTable(
+  'refresh_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    revokedAt: timestamp('revoked_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('ix_refresh_tokens_company').on(table.companyId),
+    index('ix_refresh_tokens_expires').on(table.expiresAt),
+    uniqueIndex('ux_refresh_token_hash').on(table.tokenHash),
+  ],
+);
+
 // ============ OUTBOX (Transactional Outbox Pattern) ============
 
 export const outboxEventStatusEnum = pgEnum('outbox_event_status', [
@@ -253,6 +276,9 @@ export const processedEvents = pgTable(
 );
 
 // ============ TYPE EXPORTS ============
+
+export type RefreshToken = typeof refreshTokens.$inferSelect;
+export type NewRefreshToken = typeof refreshTokens.$inferInsert;
 
 export type ProcessedEvent = typeof processedEvents.$inferSelect;
 export type NewProcessedEvent = typeof processedEvents.$inferInsert;

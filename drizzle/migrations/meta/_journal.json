@@ -36,6 +36,13 @@
       "when": 1769099652657,
       "tag": "0004_giant_stone_men",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1770314341975,
+      "tag": "0005_fuzzy_rumiko_fujikawa",
+      "breakpoints": true
     }
   ]
 }
