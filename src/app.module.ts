@@ -7,6 +7,7 @@ import { ClientModule } from './modules/client/client.module';
 import { ContractModule } from './modules/contract/contract.module';
 import { ServiceDayModule } from './modules/service-day/service-day.module';
 import { SeedModule } from './modules/seed/seed.module';
+import { HealthModule } from './modules/health/health.module';
 import { DatabaseModule } from './shared/infrastructure/database/database.module';
 import { OutboxModule } from './shared/outbox';
 import { SessionActivityMiddleware } from './shared/middleware/session-activity.middleware';
@@ -24,6 +25,7 @@ import { SessionActivityMiddleware } from './shared/middleware/session-activity.
     ClientModule,
     ContractModule,
     ServiceDayModule,
+    HealthModule,
     SeedModule,
   ],
 })

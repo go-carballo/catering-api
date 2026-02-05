@@ -20,17 +20,23 @@ const pool = new Pool({
 
 const db = drizzle(pool);
 
+// Simple logger since we can't use NestJS Logger in this context
+const logger = {
+  log: (message: string) => console.log(`[SEED] ${message}`),
+  error: (message: string) => console.error(`[SEED] ERROR: ${message}`),
+};
+
 // Default password for all seed users
 const DEFAULT_PASSWORD = 'password123';
 
 async function seed() {
-  console.log('Seeding database...');
+  logger.log('Starting database seeding...');
 
   // Hash the default password
   const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
   // Clean existing data (in reverse order of dependencies)
-  console.log('Cleaning existing data...');
+  logger.log('Cleaning existing data...');
   await db.delete(serviceDays);
   await db.delete(contractServiceDays);
   await db.delete(contracts);
@@ -40,7 +46,7 @@ async function seed() {
   await db.delete(companies);
 
   // ============ CATERING COMPANIES ============
-  console.log('Creating catering companies...');
+  logger.log('Creating catering companies...');
 
   const [catering1] = await db
     .insert(companies)
@@ -93,10 +99,10 @@ async function seed() {
     dailyCapacity: 200,
   });
 
-  console.log(`   ✓ Created ${3} catering companies`);
+  logger.log('Created 3 catering companies');
 
   // ============ CLIENT COMPANIES ============
-  console.log('Creating client companies...');
+  logger.log('Creating client companies...');
 
   const [client1] = await db
     .insert(companies)
@@ -197,10 +203,10 @@ async function seed() {
     { clientCompanyId: client4.id, dow: 5 },
   ]);
 
-  console.log(`   ✓ Created ${4} client companies`);
+  logger.log('Created 4 client companies');
 
   // ============ CONTRACTS ============
-  console.log('Creating contracts...');
+  logger.log('Creating contracts...');
 
   // Contract 1: Delicias del Sur -> TechCorp Argentina
   const [contract1] = await db
@@ -310,10 +316,10 @@ async function seed() {
     { contractId: contract5.id, dow: 5 },
   ]);
 
-  console.log(`   ✓ Created ${5} contracts`);
+  logger.log('Created 5 contracts');
 
   // ============ SERVICE DAYS ============
-  console.log('Creating service days for this week and next week...');
+  logger.log('Creating service days for this week and next week...');
 
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -399,28 +405,15 @@ async function seed() {
     await db.insert(serviceDays).values(serviceDayRecords);
   }
 
-  console.log(`   ✓ Created ${serviceDayRecords.length} service days`);
+  logger.log(`Created ${serviceDayRecords.length} service days`);
 
   // ============ SUMMARY ============
-  console.log('Seed completed successfully');
-  console.log('📊 Summary:');
-  console.log('   - 3 Catering companies');
-  console.log('   - 4 Client companies');
-  console.log('   - 5 Contracts (4 active, 1 paused)');
-  console.log(`   - ${serviceDayRecords.length} Service days`);
-  console.log('\n🔑 Sample credentials (password for all: "password123"):');
-  console.log('   Catering: delicias@example.com');
-  console.log('   Catering: sabores@example.com');
-  console.log('   Catering: chef@example.com');
-  console.log('   Client: techcorp@example.com');
-  console.log('   Client: finanzas@example.com');
-  console.log('   Client: startup@example.com');
-  console.log('   Client: consultora@example.com');
+  logger.log('Seed completed successfully');
 
   await pool.end();
 }
 
 seed().catch((error) => {
-  console.error('❌ Seed failed:', error);
+  logger.error(String(error));
   process.exit(1);
 });

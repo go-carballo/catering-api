@@ -1,16 +1,17 @@
 import { Controller, Post } from '@nestjs/common';
 import { ApiTags, ApiOperation } from '@nestjs/swagger';
 import { SeedService } from './seed.service';
-import { Public } from '../../shared/decorators/public.decorator';
 
 @ApiTags('seed')
 @Controller('seed')
 export class SeedController {
   constructor(private readonly seedService: SeedService) {}
 
-  @Public()
   @Post()
-  @ApiOperation({ summary: 'Seed database with sample data (PUBLIC ENDPOINT)' })
+  @ApiOperation({
+    summary:
+      'Seed database with sample data (PROTECTED ENDPOINT - Development Only)',
+  })
   async seed() {
     await this.seedService.seed();
     return {
