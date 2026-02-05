@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
 import { AuthModule } from './modules/auth/auth.module';
@@ -9,6 +9,7 @@ import { ServiceDayModule } from './modules/service-day/service-day.module';
 import { SeedModule } from './modules/seed/seed.module';
 import { DatabaseModule } from './shared/infrastructure/database/database.module';
 import { OutboxModule } from './shared/outbox';
+import { SessionActivityMiddleware } from './shared/middleware/session-activity.middleware';
 
 @Module({
   imports: [
@@ -26,4 +27,8 @@ import { OutboxModule } from './shared/outbox';
     SeedModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(SessionActivityMiddleware).forRoutes('*');
+  }
+}
