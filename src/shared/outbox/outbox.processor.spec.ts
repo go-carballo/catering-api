@@ -11,54 +11,74 @@ describe('OutboxProcessor', () => {
   let mockEventBus: IEventBus;
 
   /**
-   * Creates a mock that supports both chained Drizzle calls AND raw execute.
+   * Creates a mock that supports Drizzle transaction pattern.
    *
-   * The OutboxProcessor uses two different patterns:
-   * 1. Chained calls: db.update(...).set(...).where(...).returning(...)
-   * 2. Raw SQL: db.execute(sql`...`)
-   *
-   * This mock supports both.
+   * The new OutboxProcessor uses:
+   * 1. db.transaction(async (tx) => { ... })
+   * 2. tx.select().from().where()... chained calls
+   * 3. tx.update().set().where().returning()
+   * 4. db.select().from().where().orderBy().limit()
    */
   function createMockDb() {
     const mockReturning = vi.fn().mockResolvedValue([]);
-    const mockWhere = vi.fn().mockReturnThis();
+    const mockLimit = vi.fn().mockResolvedValue([]);
+
+    const mockOrderBy = vi.fn().mockReturnValue({
+      limit: mockLimit,
+    });
+
+    const mockWhere = vi.fn().mockReturnValue({
+      returning: mockReturning,
+      orderBy: mockOrderBy,
+    });
+
     const mockSet = vi.fn().mockReturnValue({
       where: mockWhere,
       returning: mockReturning,
     });
+
     const mockUpdate = vi.fn().mockReturnValue({
       set: mockSet,
-      where: mockWhere,
-      returning: mockReturning,
     });
-    const mockLimit = vi.fn().mockResolvedValue([]);
-    const mockOrderBy = vi.fn().mockReturnValue({ limit: mockLimit });
-    const mockGroupBy = vi.fn().mockResolvedValue([]);
-    const mockFrom = vi.fn().mockReturnValue({
+
+    // Mock transaction - used for claiming events
+    const mockSelectInTx = vi.fn().mockReturnValue({
       where: vi.fn().mockReturnValue({
         orderBy: mockOrderBy,
-        groupBy: mockGroupBy,
       }),
+    });
+
+    const mockTransaction = vi.fn(async (callback) => {
+      const txMock = {
+        select: mockSelectInTx,
+        update: mockUpdate,
+      };
+      return callback(txMock);
+    });
+
+    const mockGroupBy = vi.fn().mockResolvedValue([]);
+
+    // Mock for getStats and getDeadEvents: select().from().where().orderBy().limit()
+    // This needs to handle multiple call scenarios
+    const mockFrom = vi.fn().mockReturnValue({
+      where: mockWhere,
       groupBy: mockGroupBy,
     });
-    const mockSelect = vi.fn().mockReturnValue({ from: mockFrom });
 
-    // Track update calls to return proper chain
-    mockWhere.mockImplementation(() => ({
-      returning: mockReturning,
-    }));
+    const mockSelect = vi.fn().mockReturnValue({
+      from: mockFrom,
+    });
 
     return {
       select: mockSelect,
-      from: mockFrom,
       update: mockUpdate,
-      set: mockSet,
       where: mockWhere,
       orderBy: mockOrderBy,
       limit: mockLimit,
       groupBy: mockGroupBy,
       returning: mockReturning,
-      execute: vi.fn().mockResolvedValue([]), // For raw SQL with SKIP LOCKED
+      set: mockSet,
+      transaction: mockTransaction,
     };
   }
 
@@ -89,14 +109,15 @@ describe('OutboxProcessor', () => {
 
   describe('processOutbox', () => {
     it('should not process when no pending events', async () => {
-      // Stale recovery returns nothing, claim returns nothing
-      mockDb.returning.mockResolvedValue([]); // stale recovery
-      mockDb.execute.mockResolvedValue([]); // claim returns empty
+      // Stale recovery returns nothing
+      mockDb.returning.mockResolvedValue([]);
+      // Transaction returns empty list (no pending events to claim)
+      mockDb.transaction.mockResolvedValue([]);
 
       await processor.processOutbox();
 
       expect(mockDb.update).toHaveBeenCalled(); // Stale lock recovery
-      expect(mockDb.execute).toHaveBeenCalled(); // Claim query
+      expect(mockDb.transaction).toHaveBeenCalled(); // Claim via transaction
       expect(mockEventBus.publish).not.toHaveBeenCalled();
     });
 
@@ -120,12 +141,14 @@ describe('OutboxProcessor', () => {
         nextAttemptAt: new Date(),
         lockedAt: new Date(),
         lockedBy: 'test-processor',
+        processedAt: null,
+        lastError: null,
       };
 
       // Stale recovery returns nothing
       mockDb.returning.mockResolvedValue([]);
-      // Claim returns our pending event
-      mockDb.execute.mockResolvedValue([pendingEvent]);
+      // Transaction returns our pending event (claimed)
+      mockDb.transaction.mockResolvedValue([pendingEvent]);
 
       await processor.processOutbox();
 
@@ -141,29 +164,32 @@ describe('OutboxProcessor', () => {
     });
 
     it('should not run concurrently', async () => {
-      let resolveExecute: () => void;
-      const executeCalled = new Promise<void>((r) => (resolveExecute = r));
+      let resolveTransaction: () => void;
+      const transactionCalled = new Promise<void>(
+        (r) => (resolveTransaction = r),
+      );
 
-      // Make stale recovery instant but execute take time
+      // Make stale recovery instant but transaction take time
       mockDb.returning.mockResolvedValue([]);
-      mockDb.execute.mockImplementation(() => {
-        resolveExecute();
-        return new Promise((resolve) => setTimeout(() => resolve([]), 100));
+      mockDb.transaction.mockImplementation(async (callback) => {
+        resolveTransaction();
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        return [];
       });
 
       // Start two concurrent calls
       const promise1 = processor.processOutbox();
 
       // Wait for first to start executing
-      await executeCalled;
+      await transactionCalled;
 
       // Start second while first is still running
       const promise2 = processor.processOutbox();
 
       await Promise.all([promise1, promise2]);
 
-      // Execute should only be called once (first run claims, second is skipped)
-      expect(mockDb.execute).toHaveBeenCalledTimes(1);
+      // transaction should only be called once (first run claims, second is skipped)
+      expect(mockDb.transaction).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -218,12 +244,16 @@ describe('OutboxProcessor', () => {
         maxRetries: 5,
         createdAt: new Date(),
         nextAttemptAt: new Date(),
+        lockedAt: new Date(),
+        lockedBy: 'test-processor',
+        processedAt: null,
+        lastError: null,
       };
 
       // Stale recovery returns nothing
       mockDb.returning.mockResolvedValue([]);
-      // Claim returns our poison event
-      mockDb.execute.mockResolvedValue([poisonEvent]);
+      // Transaction returns our poison event
+      mockDb.transaction.mockResolvedValue([poisonEvent]);
 
       // Make publish fail
       (mockEventBus.publish as ReturnType<typeof vi.fn>).mockRejectedValue(
@@ -268,12 +298,16 @@ describe('OutboxProcessor', () => {
         maxRetries: 5,
         createdAt: new Date(),
         nextAttemptAt: new Date(),
+        lockedAt: new Date(),
+        lockedBy: 'test-processor',
+        processedAt: null,
+        lastError: null,
       };
 
       // Stale recovery returns nothing
       mockDb.returning.mockResolvedValue([]);
-      // Claim returns our failing event
-      mockDb.execute.mockResolvedValue([failingEvent]);
+      // Transaction returns our failing event
+      mockDb.transaction.mockResolvedValue([failingEvent]);
 
       (mockEventBus.publish as ReturnType<typeof vi.fn>).mockRejectedValue(
         new Error('Temporary failure'),
@@ -320,7 +354,7 @@ describe('OutboxProcessor', () => {
       await processor.processOutbox();
 
       // Should not have tried to fetch events (early return due to shutdown)
-      expect(mockDb.execute).not.toHaveBeenCalled();
+      expect(mockDb.transaction).not.toHaveBeenCalled();
     });
   });
 
