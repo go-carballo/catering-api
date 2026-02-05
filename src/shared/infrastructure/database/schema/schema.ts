@@ -46,6 +46,7 @@ export const companies = pgTable(
     passwordHash: text('password_hash').notNull(),
     taxId: text('tax_id'),
     status: companyStatusEnum('status').notNull().default('ACTIVE'),
+    lastActivityAt: timestamp('last_activity_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
       .notNull()
       .defaultNow(),

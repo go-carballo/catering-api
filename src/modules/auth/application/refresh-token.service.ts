@@ -27,10 +27,10 @@ export class RefreshTokenService {
   async generateRefreshToken(companyId: string): Promise<string> {
     // Generate a random token (256 bits = 32 bytes)
     const token = randomBytes(32).toString('hex');
-    
+
     // Hash the token before storing (security best practice)
     const tokenHash = await bcrypt.hash(token, 10);
-    
+
     // Calculate expiry date
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + this.REFRESH_TOKEN_EXPIRY_DAYS);
@@ -105,7 +105,7 @@ export class RefreshTokenService {
       .delete(refreshTokens)
       .where(lte(refreshTokens.expiresAt, new Date()));
 
-    return result.rowCount || 0;
+    return (result as any).rowCount || 0;
   }
 
   /**
@@ -122,6 +122,6 @@ export class RefreshTokenService {
         ),
       );
 
-    return result.rowCount || 0;
+    return (result as any).rowCount || 0;
   }
 }

@@ -4,6 +4,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './shared/guards/jwt-auth.guard';
 import { CompanyTypeGuard } from './shared/guards/company-type.guard';
+import { SessionActivityMiddleware } from './shared/middleware/session-activity.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -22,6 +23,9 @@ async function bootstrap() {
   });
 
   app.setGlobalPrefix('api');
+
+  // Session activity middleware - must be before global pipes
+  app.use(SessionActivityMiddleware);
 
   app.useGlobalPipes(
     new ValidationPipe({

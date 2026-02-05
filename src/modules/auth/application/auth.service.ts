@@ -100,6 +100,7 @@ export class AuthService {
         name: companies.name,
         companyType: companies.companyType,
         status: companies.status,
+        lastActivityAt: companies.lastActivityAt,
       })
       .from(companies)
       .where(eq(companies.id, payload.sub))

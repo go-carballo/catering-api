@@ -1,4 +1,11 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthService } from '../application/auth.service';
 import { LoginDto } from '../application/dto/login.dto';
@@ -130,5 +137,33 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto) {
     await this.authService.resetPassword(dto.token, dto.password);
     return { message: 'Password reset successfully' };
+  }
+
+  @Get('session-status')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get current session status and last activity time',
+    description:
+      'Returns the last activity timestamp for the authenticated user. Used to detect session timeouts on the frontend.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Session is active',
+    schema: {
+      example: {
+        isActive: true,
+        lastActivityAt: '2026-02-05T15:30:00Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  async getSessionStatus(@GetCompany() company: CurrentCompany) {
+    return {
+      isActive: true,
+      lastActivityAt: company.lastActivityAt || new Date().toISOString(),
+    };
   }
 }

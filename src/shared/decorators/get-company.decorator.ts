@@ -6,6 +6,7 @@ export interface CurrentCompany {
   name: string;
   companyType: 'CATERING' | 'CLIENT';
   status: 'ACTIVE' | 'INACTIVE';
+  lastActivityAt?: Date | null;
 }
 
 export const GetCompany = createParamDecorator(
