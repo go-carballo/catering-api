@@ -77,6 +77,7 @@ export class AuthService {
     const accessToken = this.jwtService.sign(payload);
     const refreshToken = await this.refreshTokenService.generateRefreshToken(
       company.id,
+      dto.rememberMe || false,
     );
 
     return {

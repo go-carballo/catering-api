@@ -15,6 +15,7 @@ export interface RefreshTokenPayload {
 @Injectable()
 export class RefreshTokenService {
   private readonly REFRESH_TOKEN_EXPIRY_DAYS = 7; // Refresh token valid for 7 days
+  private readonly REMEMBER_ME_EXPIRY_DAYS = 30; // Remember me valid for 30 days
 
   constructor(
     @Inject(DRIZZLE) private readonly db: DrizzleClient,
@@ -23,17 +24,25 @@ export class RefreshTokenService {
 
   /**
    * Generate a new refresh token and store it in the database
+   * @param companyId - Company ID
+   * @param rememberMe - If true, token expires in 30 days instead of 7 (default: false)
    */
-  async generateRefreshToken(companyId: string): Promise<string> {
+  async generateRefreshToken(
+    companyId: string,
+    rememberMe = false,
+  ): Promise<string> {
     // Generate a random token (256 bits = 32 bytes)
     const token = randomBytes(32).toString('hex');
 
     // Hash the token before storing (security best practice)
     const tokenHash = await bcrypt.hash(token, 10);
 
-    // Calculate expiry date
+    // Calculate expiry date based on rememberMe flag
     const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + this.REFRESH_TOKEN_EXPIRY_DAYS);
+    const expiryDays = rememberMe
+      ? this.REMEMBER_ME_EXPIRY_DAYS
+      : this.REFRESH_TOKEN_EXPIRY_DAYS;
+    expiresAt.setDate(expiresAt.getDate() + expiryDays);
 
     // Store in database
     await this.db.insert(refreshTokens).values({
