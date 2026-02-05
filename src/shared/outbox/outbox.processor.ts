@@ -106,51 +106,72 @@ export class OutboxProcessor implements OnModuleDestroy {
   }
 
   /**
-   * Claim and process pending events using SELECT FOR UPDATE SKIP LOCKED.
+   * Claim and process pending events using transaction isolation.
    * This ensures multiple processor instances don't grab the same events.
    */
   private async processPendingEvents(): Promise<void> {
     const now = new Date();
 
-    // Use transaction with explicit locking strategy
-    // Select for update at the top level (not in subquery)
-    const claimedEvents = await this.db.execute<OutboxEvent>(sql`
-      UPDATE outbox_events
-      SET 
-        status = 'PROCESSING',
-        locked_at = ${now},
-        locked_by = ${this.processorId}
-      WHERE id = ANY(
-        ARRAY(
-          SELECT id FROM outbox_events
-          WHERE status = 'PENDING'
-            AND next_attempt_at <= ${now}
-          ORDER BY next_attempt_at ASC
-          LIMIT ${BATCH_SIZE}
-          FOR UPDATE SKIP LOCKED
-        )
-      )
-      RETURNING *
-    `);
+    // Attempt to claim events atomically
+    try {
+      const claimedEvents = await this.db.transaction(async (tx) => {
+        // Select pending events first
+        const pendingEvents = await tx
+          .select()
+          .from(outboxEvents)
+          .where(
+            and(
+              eq(outboxEvents.status, 'PENDING'),
+              lte(outboxEvents.nextAttemptAt, now),
+            ),
+          )
+          .orderBy(outboxEvents.nextAttemptAt)
+          .limit(BATCH_SIZE);
 
-    // postgres.js returns array directly, not { rows: [] }
-    const events = claimedEvents as unknown as OutboxEvent[];
+        if (pendingEvents.length === 0) {
+          return [];
+        }
 
-    if (events.length === 0) {
-      return;
-    }
+        const eventIds = pendingEvents.map((e) => e.id);
 
-    this.logger.log(`Claimed ${events.length} events for processing`);
+        // Try to claim all events atomically
+        const updated = await tx
+          .update(outboxEvents)
+          .set({
+            status: 'PROCESSING',
+            lockedAt: now,
+            lockedBy: this.processorId,
+          })
+          .where(
+            and(
+              inArray(outboxEvents.id, eventIds),
+              eq(outboxEvents.status, 'PENDING'), // Ensure still pending
+            ),
+          )
+          .returning();
 
-    for (const outboxEvent of events) {
-      if (this.isShuttingDown) {
-        // Release unclaimed events back to PENDING
-        await this.releaseEvent(outboxEvent.id);
-        this.logger.log('Shutdown requested, releasing remaining events');
-        break;
+        return updated;
+      });
+
+      if (claimedEvents.length === 0) {
+        return;
       }
 
-      await this.processEvent(outboxEvent);
+      this.logger.log(`Claimed ${claimedEvents.length} events for processing`);
+
+      for (const outboxEvent of claimedEvents) {
+        if (this.isShuttingDown) {
+          await this.releaseEvent(outboxEvent.id);
+          this.logger.log('Shutdown requested, releasing remaining events');
+          break;
+        }
+
+        await this.processEvent(outboxEvent);
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to claim events: ${error instanceof Error ? error.message : error}`,
+      );
     }
   }
 
@@ -271,28 +292,46 @@ export class OutboxProcessor implements OnModuleDestroy {
       await this.recoverStaleLocks();
 
       const now = new Date();
-      const claimedEvents = await this.db.execute<OutboxEvent>(sql`
-        UPDATE outbox_events
-        SET 
-          status = 'PROCESSING',
-          locked_at = ${now},
-          locked_by = ${this.processorId}
-        WHERE id = ANY(
-          ARRAY(
-            SELECT id FROM outbox_events
-            WHERE status = 'PENDING'
-              AND next_attempt_at <= ${now}
-            ORDER BY next_attempt_at ASC
-            LIMIT ${BATCH_SIZE}
-            FOR UPDATE SKIP LOCKED
+      const claimedEvents = await this.db.transaction(async (tx) => {
+        // Select pending events first
+        const pendingEvents = await tx
+          .select()
+          .from(outboxEvents)
+          .where(
+            and(
+              eq(outboxEvents.status, 'PENDING'),
+              lte(outboxEvents.nextAttemptAt, now),
+            ),
           )
-        )
-        RETURNING *
-      `);
+          .orderBy(outboxEvents.nextAttemptAt)
+          .limit(BATCH_SIZE);
 
-      const events = claimedEvents as unknown as OutboxEvent[];
+        if (pendingEvents.length === 0) {
+          return [];
+        }
 
-      for (const event of events) {
+        const eventIds = pendingEvents.map((e) => e.id);
+
+        // Try to claim all events atomically
+        const updated = await tx
+          .update(outboxEvents)
+          .set({
+            status: 'PROCESSING',
+            lockedAt: now,
+            lockedBy: this.processorId,
+          })
+          .where(
+            and(
+              inArray(outboxEvents.id, eventIds),
+              eq(outboxEvents.status, 'PENDING'),
+            ),
+          )
+          .returning();
+
+        return updated;
+      });
+
+      for (const event of claimedEvents) {
         await this.processEvent(event);
         processedCount++;
       }
