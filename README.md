@@ -3,7 +3,7 @@
   <img src="https://img.shields.io/badge/TypeScript-5.0-3178C6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript"/>
   <img src="https://img.shields.io/badge/PostgreSQL-16-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL 16"/>
   <img src="https://img.shields.io/badge/Drizzle-ORM-C5F74F?style=for-the-badge&logo=drizzle&logoColor=black" alt="Drizzle ORM"/>
-  <img src="https://img.shields.io/badge/Tests-134%20passing-brightgreen?style=for-the-badge" alt="Tests"/>
+  <img src="https://img.shields.io/badge/Tests-266%20passing-brightgreen?style=for-the-badge" alt="Tests"/>
   <img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="MIT License"/>
 </p>
 
@@ -12,7 +12,7 @@
 **Multi-tenant REST API for catering contract management**  
 Handle contract lifecycle, service day scheduling, and reporting between catering companies and their clients.
 
-[Quick Start](#-quick-start) • [API Endpoints](#-api-endpoints) • [Development](#-development) • [Testing](#-testing) • [Architecture](#-architecture)
+[Quick Start](#-quick-start) • [API Endpoints](#-api-endpoints) • [Development](#-development) • [Testing](#-testing) • [Architecture](#-architecture) • [Deployment](#deployment)
 
 ---
 
@@ -84,6 +84,22 @@ POST   /service-days/:id/confirm-served      # Catering confirms served quantity
 ```http
 GET    /contracts/:id/reports/weekly         # Get weekly report (JSON)
 GET    /contracts/:id/reports/weekly/csv     # Export weekly report (CSV)
+```
+
+### 🏥 Health & Monitoring
+
+```http
+GET    /health                   # Health check (no auth required)
+```
+
+**Health Response**:
+
+```json
+{
+  "status": "ok",
+  "timestamp": "2026-02-05T20:39:25.804Z",
+  "database": "connected"
+}
 ```
 
 ---
@@ -291,6 +307,30 @@ make pgadmin
 # Run integration tests
 make test-integration
 ```
+
+---
+
+## 🚀 Deployment
+
+For production deployment instructions, see **[DEPLOYMENT.md](./DEPLOYMENT.md)**.
+
+### Supported Platforms
+
+- **Railway** - Recommended (PaaS, serverless)
+- **Docker** - Any Docker-compatible host
+- **Kubernetes** - Enterprise deployments
+- **Traditional VPS** - Node.js + PostgreSQL
+
+### Quick Deploy (Railway)
+
+```bash
+railway login
+railway init
+railway add  # PostgreSQL
+railway up
+```
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions, environment setup, health monitoring, and troubleshooting.
 
 ---
 
