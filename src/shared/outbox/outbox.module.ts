@@ -25,10 +25,9 @@ import { OutboxProcessor } from './outbox.processor';
       provide: EVENT_BUS,
       useClass: InMemoryEventBus,
     },
-    // TODO: Fix OutboxProcessor raw SQL compatibility with postgres.js
-    // OutboxProcessor,
+    OutboxProcessor,
     IdempotencyService,
   ],
-  exports: [EVENT_BUS, /* OutboxProcessor, */ IdempotencyService],
+  exports: [EVENT_BUS, OutboxProcessor, IdempotencyService],
 })
 export class OutboxModule {}
