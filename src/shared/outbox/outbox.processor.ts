@@ -112,20 +112,23 @@ export class OutboxProcessor implements OnModuleDestroy {
   private async processPendingEvents(): Promise<void> {
     const now = new Date();
 
-    // Use raw SQL for SKIP LOCKED - Drizzle doesn't support it natively yet
+    // Use transaction with explicit locking strategy
+    // Select for update at the top level (not in subquery)
     const claimedEvents = await this.db.execute<OutboxEvent>(sql`
       UPDATE outbox_events
       SET 
         status = 'PROCESSING',
         locked_at = ${now},
         locked_by = ${this.processorId}
-      WHERE id IN (
-        SELECT id FROM outbox_events
-        WHERE status = 'PENDING'
-          AND next_attempt_at <= ${now}
-        ORDER BY next_attempt_at ASC
-        LIMIT ${BATCH_SIZE}
-        FOR UPDATE SKIP LOCKED
+      WHERE id = ANY(
+        ARRAY(
+          SELECT id FROM outbox_events
+          WHERE status = 'PENDING'
+            AND next_attempt_at <= ${now}
+          ORDER BY next_attempt_at ASC
+          LIMIT ${BATCH_SIZE}
+          FOR UPDATE SKIP LOCKED
+        )
       )
       RETURNING *
     `);
@@ -274,13 +277,15 @@ export class OutboxProcessor implements OnModuleDestroy {
           status = 'PROCESSING',
           locked_at = ${now},
           locked_by = ${this.processorId}
-        WHERE id IN (
-          SELECT id FROM outbox_events
-          WHERE status = 'PENDING'
-            AND next_attempt_at <= ${now}
-          ORDER BY next_attempt_at ASC
-          LIMIT ${BATCH_SIZE}
-          FOR UPDATE SKIP LOCKED
+        WHERE id = ANY(
+          ARRAY(
+            SELECT id FROM outbox_events
+            WHERE status = 'PENDING'
+              AND next_attempt_at <= ${now}
+            ORDER BY next_attempt_at ASC
+            LIMIT ${BATCH_SIZE}
+            FOR UPDATE SKIP LOCKED
+          )
         )
         RETURNING *
       `);
