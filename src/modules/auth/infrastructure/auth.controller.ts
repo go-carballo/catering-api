@@ -4,6 +4,8 @@ import { AuthService } from '../application/auth.service';
 import { LoginDto } from '../application/dto/login.dto';
 import { RefreshTokenDto } from '../application/dto/refresh-token.dto';
 import { ChangePasswordDto } from '../application/dto/change-password.dto';
+import { ForgotPasswordDto } from '../application/dto/forgot-password.dto';
+import { ResetPasswordDto } from '../application/dto/reset-password.dto';
 import { Public } from '../../../shared/decorators/public.decorator';
 import { GetCompany } from '../../../shared/decorators/get-company.decorator';
 import type { CurrentCompany } from '../../../shared/decorators/get-company.decorator';
@@ -88,5 +90,45 @@ export class AuthController {
   ) {
     await this.authService.changePassword(company.id, dto);
     return { message: 'Password changed successfully' };
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Request password reset',
+    description:
+      'Send a password reset email to the provided email address. Email will contain a link with a reset token valid for 15 minutes.',
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'If email exists, reset email will be sent (silently returns success for security)',
+  })
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.requestPasswordReset(dto.email);
+    return {
+      message:
+        'If an account exists with this email, a reset link has been sent',
+    };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Reset password using token from email',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Password reset successfully',
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid or expired reset token',
+  })
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.token, dto.password);
+    return { message: 'Password reset successfully' };
   }
 }

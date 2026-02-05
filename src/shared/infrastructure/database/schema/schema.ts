@@ -200,6 +200,29 @@ export const refreshTokens = pgTable(
   ],
 );
 
+// ============ PASSWORD RESET TOKENS ============
+
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'cascade' }),
+    tokenHash: text('token_hash').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('ix_password_reset_company').on(table.companyId),
+    index('ix_password_reset_expires').on(table.expiresAt),
+    uniqueIndex('ux_password_reset_token_hash').on(table.tokenHash),
+  ],
+);
+
 // ============ OUTBOX (Transactional Outbox Pattern) ============
 
 export const outboxEventStatusEnum = pgEnum('outbox_event_status', [
@@ -279,6 +302,9 @@ export const processedEvents = pgTable(
 
 export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type NewRefreshToken = typeof refreshTokens.$inferInsert;
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
 
 export type ProcessedEvent = typeof processedEvents.$inferSelect;
 export type NewProcessedEvent = typeof processedEvents.$inferInsert;

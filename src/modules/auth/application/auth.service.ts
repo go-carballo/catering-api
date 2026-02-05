@@ -13,6 +13,7 @@ import { companies } from '../../../shared/infrastructure/database/schema';
 import { LoginDto } from './dto/login.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RefreshTokenService } from './refresh-token.service';
+import { PasswordResetService } from './password-reset.service';
 
 export interface JwtPayload {
   sub: string; // company ID
@@ -40,6 +41,7 @@ export class AuthService {
     @Inject(DRIZZLE) private readonly db: DrizzleClient,
     private readonly jwtService: JwtService,
     private readonly refreshTokenService: RefreshTokenService,
+    private readonly passwordResetService: PasswordResetService,
   ) {}
 
   async login(dto: LoginDto): Promise<AuthResponse> {
@@ -220,6 +222,31 @@ export class AuthService {
 
     // Optional: Revoke all existing refresh tokens for security
     // This forces the user to login again from other devices
+    await this.refreshTokenService.revokeAllTokensForCompany(companyId);
+  }
+
+  /**
+   * Request password reset - sends email with reset link
+   */
+  async requestPasswordReset(email: string): Promise<void> {
+    await this.passwordResetService.requestPasswordReset(email);
+  }
+
+  /**
+   * Reset password using token
+   */
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const companyId = await this.passwordResetService.resetPassword(
+      token,
+      newPassword,
+    );
+
+    if (!companyId) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+
+    // Revoke all refresh tokens for security
+    // User must login again after password reset
     await this.refreshTokenService.revokeAllTokensForCompany(companyId);
   }
 }

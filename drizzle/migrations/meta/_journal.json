@@ -43,6 +43,13 @@
       "when": 1770314341975,
       "tag": "0005_fuzzy_rumiko_fujikawa",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1770315728003,
+      "tag": "0006_misty_forge",
+      "breakpoints": true
     }
   ]
 }
