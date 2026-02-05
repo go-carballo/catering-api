@@ -50,6 +50,13 @@
       "when": 1770315728003,
       "tag": "0006_misty_forge",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1770332140312,
+      "tag": "0007_odd_supernaut",
+      "breakpoints": true
     }
   ]
 }
