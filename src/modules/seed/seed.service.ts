@@ -1,4 +1,4 @@
-import { Injectable, Inject } from '@nestjs/common';
+import { Injectable, Inject, Logger } from '@nestjs/common';
 import { NodePgDatabase } from 'drizzle-orm/node-postgres';
 import * as bcrypt from 'bcryptjs';
 import {
@@ -14,16 +14,18 @@ import { DRIZZLE } from '../../shared/infrastructure/database/database.module';
 
 @Injectable()
 export class SeedService {
+  private readonly logger = new Logger('SeedService');
+
   constructor(@Inject(DRIZZLE) private readonly db: NodePgDatabase) {}
 
   async seed(): Promise<void> {
-    console.log('🌱 Seeding database...\n');
+    this.logger.log('Starting database seeding...');
 
     const DEFAULT_PASSWORD = 'password123';
     const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
     // Clean existing data (in reverse order of dependencies)
-    console.log('🧹 Cleaning existing data...');
+    this.logger.log('Cleaning existing data...');
     await this.db.delete(serviceDays);
     await this.db.delete(contractServiceDays);
     await this.db.delete(contracts);
@@ -33,7 +35,7 @@ export class SeedService {
     await this.db.delete(companies);
 
     // ============ CATERING COMPANIES ============
-    console.log('🍽️  Creating catering companies...');
+    this.logger.log('Creating catering companies...');
 
     const [catering1] = await this.db
       .insert(companies)
@@ -89,7 +91,7 @@ export class SeedService {
     console.log(`   ✓ Created 3 catering companies`);
 
     // ============ CLIENT COMPANIES ============
-    console.log('🏢 Creating client companies...');
+    this.logger.log('Creating client companies...');
 
     const [client1] = await this.db
       .insert(companies)
@@ -186,10 +188,10 @@ export class SeedService {
       { clientCompanyId: client4.id, dow: 5 },
     ]);
 
-    console.log(`   ✓ Created 4 client companies`);
+    this.logger.log('Created 4 client companies');
 
     // ============ CONTRACTS ============
-    console.log('📝 Creating contracts...');
+    this.logger.log('Creating contracts...');
 
     const [contract1] = await this.db
       .insert(contracts)
@@ -294,10 +296,10 @@ export class SeedService {
       { contractId: contract5.id, dow: 5 },
     ]);
 
-    console.log(`   ✓ Created 5 contracts`);
+    this.logger.log('Created 5 contracts');
 
     // ============ SERVICE DAYS ============
-    console.log('📅 Creating service days for this week and next week...');
+    this.logger.log('Creating service days for this week and next week...');
 
     const today = new Date();
     const startOfWeek = new Date(today);
@@ -383,8 +385,8 @@ export class SeedService {
       await this.db.insert(serviceDays).values(serviceDayRecords);
     }
 
-    console.log(`   ✓ Created ${serviceDayRecords.length} service days`);
+    this.logger.log('Created ' + serviceDayRecords.length + ' service days');
 
-    console.log('\n✅ Seed completed successfully!\n');
+    this.logger.log('Seed completed successfully');
   }
 }

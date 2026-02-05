@@ -64,10 +64,7 @@ export class AuthController {
     status: 200,
     description: 'Logout successful',
   })
-  async logout(
-    @Body() dto: RefreshTokenDto,
-    @GetCompany() company: CurrentCompany,
-  ) {
+  async logout(@Body() dto: RefreshTokenDto) {
     await this.authService.logout(dto.refreshToken);
     return { message: 'Logged out successfully' };
   }

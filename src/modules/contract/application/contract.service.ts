@@ -5,7 +5,7 @@ import {
   BadRequestException,
   ConflictException,
 } from '@nestjs/common';
-import { eq, and, gte, lte, sql, isNotNull, inArray } from 'drizzle-orm';
+import { eq, and, gte, lte, sql, inArray } from 'drizzle-orm';
 import { DRIZZLE } from '../../../shared/infrastructure/database/database.module';
 import type { DrizzleClient } from '../../../shared/infrastructure/database/drizzle.client';
 import {

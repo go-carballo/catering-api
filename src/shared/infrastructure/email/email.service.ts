@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as nodemailer from 'nodemailer';
 
@@ -11,6 +11,7 @@ export interface EmailOptions {
 
 @Injectable()
 export class EmailService {
+  private readonly logger = new Logger('EmailService');
   private transporter: nodemailer.Transporter;
 
   constructor(private configService: ConfigService) {
@@ -49,7 +50,7 @@ export class EmailService {
    * Initialize test transport for development
    * Emails won't actually be sent, but you can see them in ethereal
    */
-  private async initializeTestTransport() {
+  private async initializeTestTransport(): Promise<void> {
     try {
       const testAccount = await nodemailer.createTestAccount();
       this.transporter = nodemailer.createTransport({
@@ -62,9 +63,8 @@ export class EmailService {
         },
       });
     } catch (error) {
-      console.warn(
-        'Could not initialize Ethereal test account, emails will fail',
-        error,
+      this.logger.warn(
+        `Could not initialize Ethereal test account, emails will fail: ${error}`,
       );
     }
   }
@@ -87,14 +87,14 @@ export class EmailService {
         html: options.html,
       });
 
-      console.log('Email sent:', info.messageId);
+      this.logger.log(`Email sent to ${options.to}: ${info.messageId}`);
 
       // For Ethereal test emails, print the preview URL
       if (process.env.NODE_ENV !== 'production') {
-        console.log('Preview URL:', nodemailer.getTestMessageUrl(info));
+        this.logger.debug(`Preview URL: ${nodemailer.getTestMessageUrl(info)}`);
       }
     } catch (error) {
-      console.error('Failed to send email:', error);
+      this.logger.error(`Failed to send email to ${options.to}:`, error);
       throw error;
     }
   }

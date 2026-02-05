@@ -1,10 +1,31 @@
 import { NestFactory, Reflector } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { JwtAuthGuard } from './shared/guards/jwt-auth.guard';
 import { CompanyTypeGuard } from './shared/guards/company-type.guard';
 import { SessionActivityMiddleware } from './shared/middleware/session-activity.middleware';
+
+/**
+ * Validate required environment variables at startup
+ */
+function validateEnvironment(): void {
+  const logger = new Logger('Environment');
+  const requiredVars = ['DATABASE_URL', 'JWT_SECRET', 'NODE_ENV'];
+
+  const missing = requiredVars.filter((varName) => !process.env[varName]);
+
+  if (missing.length > 0) {
+    logger.error(
+      `Missing required environment variables: ${missing.join(', ')}`,
+    );
+    process.exit(1);
+  }
+
+  logger.log(
+    `Environment variables validated. Running in ${process.env.NODE_ENV} mode.`,
+  );
+}
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -60,17 +81,19 @@ async function bootstrap() {
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('docs', app, document);
 
-  // Railway always sets PORT=8080, but we need to listen on 3000 for the public domain
-  const port = 3000;
-  console.log(
-    `📍 Forcing port: ${port} (Railway PORT was: ${process.env.PORT})`,
-  );
-  console.log(`🌐 Environment: ${process.env.NODE_ENV}`);
+  // Use PORT from environment (Railway sets this to 8080), default to 3000
+  const port = parseInt(process.env.PORT || '3000', 10);
+  const logger = new Logger('Bootstrap');
+  logger.log(`API listening on port ${port}`);
+  logger.log(`Environment: ${process.env.NODE_ENV}`);
 
   await app.listen(port, '0.0.0.0');
 
-  console.log(`🚀 Catering API running on http://localhost:${port}/api`);
-  console.log(`📚 Swagger docs at http://localhost:${port}/docs`);
+  logger.log(`Catering API running on http://localhost:${port}/api`);
+  logger.log(`Swagger docs at http://localhost:${port}/docs`);
 }
 
-bootstrap();
+(async () => {
+  validateEnvironment();
+  await bootstrap();
+})();

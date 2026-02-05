@@ -24,13 +24,13 @@ const db = drizzle(pool);
 const DEFAULT_PASSWORD = 'password123';
 
 async function seed() {
-  console.log('🌱 Seeding database...\n');
+  console.log('Seeding database...');
 
   // Hash the default password
   const passwordHash = await bcrypt.hash(DEFAULT_PASSWORD, 10);
 
   // Clean existing data (in reverse order of dependencies)
-  console.log('🧹 Cleaning existing data...');
+  console.log('Cleaning existing data...');
   await db.delete(serviceDays);
   await db.delete(contractServiceDays);
   await db.delete(contracts);
@@ -40,7 +40,7 @@ async function seed() {
   await db.delete(companies);
 
   // ============ CATERING COMPANIES ============
-  console.log('🍽️  Creating catering companies...');
+  console.log('Creating catering companies...');
 
   const [catering1] = await db
     .insert(companies)
@@ -96,7 +96,7 @@ async function seed() {
   console.log(`   ✓ Created ${3} catering companies`);
 
   // ============ CLIENT COMPANIES ============
-  console.log('🏢 Creating client companies...');
+  console.log('Creating client companies...');
 
   const [client1] = await db
     .insert(companies)
@@ -200,7 +200,7 @@ async function seed() {
   console.log(`   ✓ Created ${4} client companies`);
 
   // ============ CONTRACTS ============
-  console.log('📝 Creating contracts...');
+  console.log('Creating contracts...');
 
   // Contract 1: Delicias del Sur -> TechCorp Argentina
   const [contract1] = await db
@@ -313,7 +313,7 @@ async function seed() {
   console.log(`   ✓ Created ${5} contracts`);
 
   // ============ SERVICE DAYS ============
-  console.log('📅 Creating service days for this week and next week...');
+  console.log('Creating service days for this week and next week...');
 
   const today = new Date();
   const startOfWeek = new Date(today);
@@ -402,7 +402,7 @@ async function seed() {
   console.log(`   ✓ Created ${serviceDayRecords.length} service days`);
 
   // ============ SUMMARY ============
-  console.log('\n✅ Seed completed successfully!\n');
+  console.log('Seed completed successfully');
   console.log('📊 Summary:');
   console.log('   - 3 Catering companies');
   console.log('   - 4 Client companies');
