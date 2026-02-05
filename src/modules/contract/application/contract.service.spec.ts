@@ -493,4 +493,17 @@ describe('ContractService', () => {
       ).rejects.toThrow('Contract is already active');
     });
   });
+
+  describe('getFinanceMetrics', () => {
+    it('should return empty metrics when client has no contracts', async () => {
+      const clientId = '123e4567-e89b-12d3-a456-426614174001';
+      mockDb.where.mockResolvedValueOnce([]); // No contracts
+
+      const result = await service.getFinanceMetrics(clientId);
+
+      expect(result.budget.consumed).toBe(0);
+      expect(result.budget.estimated).toBe(0);
+      expect(result.recentServices).toHaveLength(0);
+    });
+  });
 });

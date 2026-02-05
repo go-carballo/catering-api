@@ -41,6 +41,25 @@ export class ContractController {
     return this.contractService.findByCateringId(company.id);
   }
 
+  @Get('finance-metrics')
+  @CompanyType('CLIENT')
+  @ApiOperation({
+    summary: 'Get financial metrics for client company',
+    description:
+      'Returns budget, KPIs, and recent services for the authenticated client company. Only available for CLIENT type companies.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Finance metrics retrieved successfully',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Only CLIENT companies can access finance metrics',
+  })
+  getFinanceMetrics(@GetCompany() company: CurrentCompany) {
+    return this.contractService.getFinanceMetrics(company.id);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Get a contract by ID' })
   @ApiParam({ name: 'id', description: 'Contract UUID' })
