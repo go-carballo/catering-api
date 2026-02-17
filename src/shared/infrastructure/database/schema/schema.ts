@@ -33,6 +33,7 @@ export const serviceDayStatusEnum = pgEnum('service_day_status', [
   'PENDING',
   'CONFIRMED',
 ]);
+export const userRoleEnum = pgEnum('user_role', ['ADMIN', 'MANAGER', 'EMPLOYEE']);
 
 // ============ TABLES ============
 
@@ -85,6 +86,31 @@ export const clientOfficeDays = pgTable(
     dow: smallint('dow').notNull(), // 1-7 (Monday-Sunday)
   },
   (table) => [primaryKey({ columns: [table.clientCompanyId, table.dow] })],
+);
+
+export const users = pgTable(
+  'users',
+  {
+    id: uuid('id').primaryKey().defaultRandom(),
+    companyId: uuid('company_id')
+      .notNull()
+      .references(() => companies.id, { onDelete: 'cascade' }),
+    email: text('email').notNull(),
+    name: text('name').notNull(),
+    role: userRoleEnum('role').notNull().default('EMPLOYEE'),
+    isActive: boolean('is_active').notNull().default(true),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('ux_users_company_email')
+      .on(table.companyId, table.email),
+    index('ix_users_company').on(table.companyId),
+  ],
 );
 
 export const contracts = pgTable(

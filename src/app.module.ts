@@ -6,6 +6,7 @@ import { CateringModule } from './modules/catering/catering.module';
 import { ClientModule } from './modules/client/client.module';
 import { ContractModule } from './modules/contract/contract.module';
 import { ServiceDayModule } from './modules/service-day/service-day.module';
+import { UserModule } from './modules/user/user.module';
 import { SeedModule } from './modules/seed/seed.module';
 import { HealthModule } from './modules/health/health.module';
 import { DatabaseModule } from './shared/infrastructure/database/database.module';
@@ -25,6 +26,7 @@ import { SessionActivityMiddleware } from './shared/middleware/session-activity.
     ClientModule,
     ContractModule,
     ServiceDayModule,
+    UserModule,
     HealthModule,
     SeedModule,
   ],
