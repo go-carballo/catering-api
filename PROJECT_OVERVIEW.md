@@ -287,7 +287,7 @@ Las entidades no son simples DTOs — contienen **comportamiento y reglas de neg
 | Componente | Plataforma | URL                                        |
 | ---------- | ---------- | ------------------------------------------ |
 | Backend    | Railway    | (configurado via Dockerfile)               |
-| Frontend   | Vercel     | `https://catering-frontend-two.vercel.app` |
+| Frontend   | Vercel     | `https://chefops.vercel.app` |
 | DB         | PostgreSQL | (Railway managed)                          |
 
 ---
@@ -570,7 +570,7 @@ usersService     → getAll, create, update, delete
 | Componente | Plataforma | URL / Puerto                               |
 | ---------- | ---------- | ------------------------------------------ |
 | Backend    | Railway    | `catering-api-production.up.railway.app`   |
-| Frontend   | Vercel     | `https://catering-frontend-two.vercel.app` |
+| Frontend   | Vercel     | `https://chefops.vercel.app` |
 | DB         | Railway    | PostgreSQL managed                         |
 | API Docs   | Swagger    | `/docs` (en el backend)                    |
 | Dev API    | Local      | `http://localhost:3000`                    |
