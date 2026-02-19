@@ -12,7 +12,7 @@
 **Multi-tenant REST API for catering contract management**  
 Handle contract lifecycle, service day scheduling, and reporting between catering companies and their clients.
 
-[Quick Start](#-quick-start) • [API Endpoints](#-api-endpoints) • [Development](#-development) • [Testing](#-testing) • [Architecture](#-architecture) • [Deployment](#deployment)
+[Quick Start](#-quick-start) • [API Endpoints](#-api-endpoints) • [Documentation](#-documentation) • [Development](#-development) • [Testing](#-testing) • [Architecture](#-architecture) • [Deployment](#deployment)
 
 ---
 
@@ -26,6 +26,28 @@ Handle contract lifecycle, service day scheduling, and reporting between caterin
 | 📊 **Reporting**              | Weekly reports with cost calculations and CSV export |
 | 🏢 **Multi-tenant**           | Support for CATERING and CLIENT company types        |
 | ⚡ **Domain Events**          | Transactional outbox pattern for guaranteed delivery |
+
+---
+
+## 📚 Documentation
+
+Complete project documentation for developers and evaluators:
+
+- **[Presentation Slides](https://docs.google.com/presentation/d/1eHKellzAySouQ-5jy5Yz7KJIrdJ7_dTM8BBvapJH00o/edit?usp=sharing)** - TFM defense slides
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** - Clean Architecture, DDD, design patterns
+- **[MASTER_THESIS.md](./MASTER_THESIS.md)** - Thesis executive summary
+- **[DESIGN_DECISIONS.md](./DESIGN_DECISIONS.md)** - Technical trade-offs explained
+- **[API_DOCUMENTATION.md](./API_DOCUMENTATION.md)** - Full REST API reference
+- **[DATABASE_DESIGN.md](./DATABASE_DESIGN.md)** - Schema, indexes, multi-tenancy
+- **[SECURITY.md](./SECURITY.md)** - Auth, threats, mitigations
+- **[TESTING_STRATEGY.md](./TESTING_STRATEGY.md)** - Test pyramid, coverage
+- **[DEPLOYMENT_AND_OPS.md](./DEPLOYMENT_AND_OPS.md)** - CI/CD, monitoring, DR
+- **[DEVELOPMENT_GUIDE.md](./DEVELOPMENT_GUIDE.md)** - Setup, workflows
+- **[PROJECT_OVERVIEW.md](./PROJECT_OVERVIEW.md)** - Feature catalog
+
+See [docs/README.md](./docs/README.md) for navigation by role (evaluator, developer).
+
+**Frontend Repository**: [catering-frontend](https://github.com/go-carballo/catering-frontend)
 
 ---
 
